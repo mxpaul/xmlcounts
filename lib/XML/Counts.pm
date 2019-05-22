@@ -7,6 +7,18 @@ our @EXPORT = our @EXPORT_OK = qw(counts_from_file counts_from_fd);
 
 use XML::Parser;
 
+sub counts_from_file {
+	my $fname = shift;
+	stat $fname;
+	return {Error => "File not found: $fname" } unless -e _;
+	return {Error => "File is not readable: $fname" } unless -r _;
+	return {Error => "File is not a regular file: $fname" } unless -f _;
+	open my $f, '<', $fname or return { Error => "open $fname error: $!"};
+	my $res = counts_from_fd($f);
+	close $f;
+	return $res;
+}
+
 sub counts_from_fd {
 	my $fd = shift;
 
@@ -29,22 +41,11 @@ sub counts_from_fd {
 	};
 
 	my $decoder = XML::Parser->new(Handlers=> \%handlers);
-	$decoder->parse($fd);
+	eval{	$decoder->parse($fd);};
+	return {Error => "XML parse error: $@"} if $@;
 
 	$res->{BrokenLinks} = grep { s/^#// && !exists $ids{$_} } @links;
 	$res->{Links} = 0+ @links;
-	return $res;
-}
-
-sub counts_from_file {
-	my $fname = shift;
-	stat $fname;
-	return {Error => "File not found: $fname" } unless -e _;
-	return {Error => "File is not readable: $fname" } unless -r _;
-	return {Error => "File is not a regular file: $fname" } unless -f _;
-	open my $f, '<', $fname or return { Error => "open $fname error: $!"};
-	my $res = counts_from_fd($f);
-	close $f;
 	return $res;
 }
 

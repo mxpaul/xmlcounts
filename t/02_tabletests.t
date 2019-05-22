@@ -24,15 +24,14 @@ sub table_tests_run {
 		croak 'need want hash' unless ref $case->{want} eq 'HASH';
 		my $desc = sprintf('%s when %s', $funcname, $case->{desc});
 		open my $f, '<', \$case->{input}[0] or croak "open input fd: $!";
-		#my $old = $Word::Count::MAXREAD;
-		#$Word::Count::MAXREAD = $case->{maxread} if $case->{maxread};
+		#my $old = $XML::Counts::MAXREAD;
+		#$XML::Counts::MAXREAD = $case->{maxread} if $case->{maxread};
 		my $got = do {no strict 'refs'; &$funcname($f)};
-		#$Word::Count::MAXREAD = $old;
+		#$XML:Counts::MAXREAD = $old;
 		close($f);
-		cmp_deeply($got, $case->{want}, $desc) or diag Dumper $got;
+		cmp_deeply($got, superhashof($case->{want}), $desc) or diag Dumper $got;
 	}
 }
-
 
 my @cases = (
 	{ desc => 'smallest xml',
@@ -43,7 +42,12 @@ my @cases = (
 		input => [q{<?xml version="1.1"?><a l:href="#broken">1</a>}],
 		want => {Letters => 1, NormalizedLetters => 1, Links => 1, BrokenLinks => 1, Error => 0},
 	},
+	{ desc => 'invalid xml',
+		input => [q{<?xml version="1.1"?></a>}],
+		want => {Error => re(/Error/i)},
+	},
 );
 
 table_tests_run('counts_from_fd', \@cases);
+
 done_testing;
