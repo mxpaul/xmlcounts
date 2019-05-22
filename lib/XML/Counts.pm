@@ -14,6 +14,7 @@ sub counts_from_file {
 	return {Error => "File is not readable: $fname" } unless -r _;
 	return {Error => "File is not a regular file: $fname" } unless -f _;
 	open my $f, '<', $fname or return { Error => "open $fname error: $!"};
+	binmode($f);
 	my $res = counts_from_fd($f);
 	close $f;
 	return $res;
@@ -40,7 +41,7 @@ sub counts_from_fd {
 		if ($attr{id}) { $ids{$attr{id}} = $tag }
 	};
 
-	my $decoder = XML::Parser->new(Handlers=> \%handlers);
+	my $decoder = XML::Parser->new(NoLWP => 1, Handlers=> \%handlers);
 	eval{	$decoder->parse($fd);};
 	return {Error => "XML parse error: $@"} if $@;
 
